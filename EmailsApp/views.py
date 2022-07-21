@@ -4,6 +4,7 @@ from django_elasticsearch_dsl_drf.filter_backends import (
     CompoundSearchFilterBackend,FilteringFilterBackend)
 from django_elasticsearch_dsl_drf.viewsets import DocumentViewSet
 from django.http.response import JsonResponse
+from numpy import append
 from rest_framework.parsers import JSONParser 
 from .models import *
 from .documents import *
@@ -95,7 +96,6 @@ def preparingData(uploaded_file_url):
             if not sr :
                 new_job_title_role.append(None)
             else:
-                
                 if sr not in listvalues:
                     new_job_title_role.append(sr)
                 else:
@@ -106,6 +106,7 @@ def preparingData(uploaded_file_url):
                         
     ds['job_title_role']=new_job_title_role
     df=ds[['full_name','gender','job_title','job_title_role','job_title_sub_role','location_country','location_continent','emails','languages']]
+    df['job_title_role']=df['job_title_role'].str.replace(' ', '_')
     myclient = MongoClient("mongodb+srv://soumaya:soumaya1Atlas@cluster0.y9xab.mongodb.net/test?retryWrites=true&w=majority")
     db = myclient["LinkedinDB"]
     col = db["LinkedinApp_data"]
@@ -126,15 +127,22 @@ def prepareFile(uploaded_file_url):
 
 def getJobSubRole(request):
     job_role=request.GET.get('job_role')
-    print(job_role)
     list_job_title_sub_role=set()
-    r =requests.get('http://127.0.0.1:8000/search_emails/?job_title_role='+(str(job_role)).lower())
+    all_emails=list()
+    r =requests.get('http://127.0.0.1:8000/search_emails/?job_title_role='+str(job_role).lower())
     r_dictionary= r.json()
     for item in r_dictionary['results']:
         list_job_title_sub_role.add(item['job_title_sub_role'])
+        list_emails=list()
+        for email in item['emails']:
+            list_emails.append(email['address'])
+        all_emails.append(list_emails)
     print(list_job_title_sub_role)
+
     response_data={
-        'list_job_title_sub_role':list(list_job_title_sub_role)
+        'list_job_title_sub_role':sorted(list(list_job_title_sub_role)),
+        'all_emails':all_emails,
+        'data':r_dictionary['results']
     } 
     return JsonResponse(response_data)
 

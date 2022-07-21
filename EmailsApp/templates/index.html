@@ -48,16 +48,16 @@
       </form>
       
       <form id="getForm" action="" method="get">
-        <div class="row">
+        <div class="row" id="wrapper">
           <div class="col">
             <div class="input-group input-group-sm" >
               <div class="input-group-prepend">
-                <label class="input-group-text" for="inputGroupSelect01">Gender</label>
+                <label class="input-group-text" for="gender">Gender</label>
               </div>
-              <select class="custom-select" id="inputGroupSelect01">
-                <option selected>Choose...</option>
-                <option value="F">Female</option>
-                <option value="M">Male</option>
+              <select class="custom-select" id="gender">
+                <option selected> </option>
+                <option value="female">Female</option>
+                <option value="male">Male</option>
               </select>
             </div>
           </div>
@@ -67,7 +67,7 @@
                 <label class="input-group-text" for="job_role" >Job role/niche</label>
               </div>
               <select class="custom-select" id="job_role" name="job_role" form="getForm" >
-                <option>select job role</option>
+                <option> </option>
                 {% for item in list_job_title_role %}
                   <option value="{{ item }}" style="text-transform: capitalize" >{{ item }}</option>
                 {% endfor %}           
@@ -80,7 +80,7 @@
                 <label class="input-group-text" for="job_sub_role">Job sub role</label>
               </div>
               <select class="custom-select" id="job_sub_role" name="job_sub_role" form="getForm">
-                <option>select job sub role</option>
+                <option> </option>
 
               </select>
             </div>                   
@@ -91,7 +91,7 @@
                 <label class="input-group-text" for="continent">Continent</label>
               </div>
               <select class="custom-select" id="continent" name="continent" >
-                <option>select continent</option>
+                <option> </option>
                 <option value="africa">Africa</option>
                 <option value="asia">Asia</option>
                 <option value="europe">Europe</option>
@@ -107,7 +107,7 @@
                 <label class="input-group-text" for="country">Country</label>
               </div>
               <select class="custom-select" id="country" name="country">
-                <option>select Country</option>
+                <option> </option>
                 
               </select>
             </div>                      
@@ -118,7 +118,7 @@
                 <label class="input-group-text" for="language">Language</label>
               </div>
               <select class="custom-select" id="language" name="language">
-                <option>select language</option>
+                <option> </option>
                 {% for item in list_language %}
                   <option value="{{ item }}" style="text-transform: capitalize">{{ item }}</option>
                 {% endfor %}           
@@ -217,20 +217,20 @@
           dataType:'json',
           success:function(response){
               var select=document.getElementById("job_sub_role");
+              var emptyOption = document.createElement("option");
+              emptyOption.innerHTML = " "
+              select.appendChild(emptyOption)
               for(var i=0; i<response.list_job_title_sub_role.length;i++){
                 var option = document.createElement("option");
-                option.value = response.list_job_title_sub_role[i];
+                option.value = response.list_job_title_sub_role[i];////////////////////////////////value to match what on DB
                 option.innerHTML = response.list_job_title_sub_role[i].replace("_"," ");
                 option.style.textTransform= "capitalize";
                 select.appendChild(option);
               }
-            
               for(var i=0; i<response.data.length;i++){
               $('#DataTable').append(`<tr><td>${response.data[i].full_name}</td><td>${response.data[i].gender}</td><td>${response.data[i].job_title}</td><td>${response.data[i].job_title_role}</td><td>${response.data[i].job_title_sub_role}</td><td>${response.data[i].location_country}</td><td>${response.data[i].location_continent}</td><td>${response.data[i].languages}</td><td>${response.all_emails[i].join('<br>')}</td></tr>`);
               }
              
-
-
           },
         });
     });
@@ -259,7 +259,26 @@
             });
         });
         // SEND FORM 
-    
+        document.getElementById("wrapper").addEventListener("change",function(){
+          $.ajax({
+            type:'GET',
+            url:"getResults/",
+            data:{
+              gender:$("#gender").val(),
+              job_role:$("#job_role").val(),
+              job_sub_role:$("#job_sub_role").val(),
+              continent:$("#continent").val(),
+              country:$("#country").val(),
+              language:$("#language").val(),
+            },
+            dataType:'json',
+            success:function(response){
+                console.log('passs')
+  
+            },
+          });
+        })
+
                   </script>
 
 </body>

@@ -61,15 +61,15 @@
               </select>
             </div>
           </div>
-          <div class="col">
+          <div class="col" >
             <div class="input-group input-group-sm">
               <div class="input-group-prepend">
-                <label class="input-group-text" for="job_role">Job role/niche</label>
+                <label class="input-group-text" for="job_role" >Job role/niche</label>
               </div>
-              <select class="custom-select" id="job_role" name="job_role" form="getForm">
+              <select class="custom-select" id="job_role" name="job_role" form="getForm" >
                 <option>select job role</option>
                 {% for item in list_job_title_role %}
-                  <option value="{{ item }}" style="text-transform: capitalize">{{ item }}</option>
+                  <option value="{{ item }}" style="text-transform: capitalize" >{{ item }}</option>
                 {% endfor %}           
               </select>
             </div>           
@@ -80,7 +80,8 @@
                 <label class="input-group-text" for="job_sub_role">Job sub role</label>
               </div>
               <select class="custom-select" id="job_sub_role" name="job_sub_role" form="getForm">
-                       
+                <option>select job sub role</option>
+
               </select>
             </div>                   
           </div>
@@ -107,9 +108,7 @@
               </div>
               <select class="custom-select" id="country" name="country">
                 <option>select Country</option>
-                {% comment %} {% for item in list_language %}
-                  <option value="{{ item }}">{{ item }}</option>
-                {% endfor %}            {% endcomment %}
+                
               </select>
             </div>                      
           </div>
@@ -145,23 +144,22 @@
   </div>
 
   <div class="table-responsive table-responsive-data2">
-    <table class="table table-data2">
+    <table class="table table-data2" id="DataTable">
       <thead class="table-dark">
         <tr>
 
-          <th style=" color:White">#</th>
           <th style=" color:White">Full name</th>
           <th style="color:White">Gender</th>
-          <th style="color:White">Industry</th>
           <th style="color:White">Job title</th>
           <th style="color:White">Job title role</th>
+          <th style="color:White">Job title sub role</th>
           <th style="color:White">Country</th>
           <th style="color:White">Continent</th>
+          <th style="color:White">Language</th>
           <th style="color:White">Emails</th>
-          <th style="color:White">Languages</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id='DataTabletBody'>
 
 {% comment %} 
         {% for eq_list in eq %}
@@ -209,6 +207,7 @@
     //LINKED DROPDOWN LISTS FOR job_role AND job_sub_role :
     document.getElementById("job_role").addEventListener("change",function(){
         document.getElementById("job_sub_role").innerHTML="";
+        document.getElementById("DataTabletBody").innerHTML="";
         $.ajax({
           type:'GET',
           url:"getJobSubRole/",
@@ -221,14 +220,21 @@
               for(var i=0; i<response.list_job_title_sub_role.length;i++){
                 var option = document.createElement("option");
                 option.value = response.list_job_title_sub_role[i];
-                option.innerHTML = response.list_job_title_sub_role[i];
+                option.innerHTML = response.list_job_title_sub_role[i].replace("_"," ");
+                option.style.textTransform= "capitalize";
                 select.appendChild(option);
               }
+            
+              for(var i=0; i<response.data.length;i++){
+              $('#DataTable').append(`<tr><td>${response.data[i].full_name}</td><td>${response.data[i].gender}</td><td>${response.data[i].job_title}</td><td>${response.data[i].job_title_role}</td><td>${response.data[i].job_title_sub_role}</td><td>${response.data[i].location_country}</td><td>${response.data[i].location_continent}</td><td>${response.data[i].languages}</td><td>${response.all_emails[i].join('<br>')}</td></tr>`);
+              }
+             
+
 
           },
         });
     });
-          //LINKED DROPDOWN LISTS FOR Continent AND Country :
+  //LINKED DROPDOWN LISTS FOR Continent AND Country :
 
           document.getElementById("continent").addEventListener("change",function(){
             document.getElementById("country").innerHTML="";
@@ -245,12 +251,15 @@
                     var option = document.createElement("option");
                     option.value = response.list_countries[i];
                     option.innerHTML = response.list_countries[i];
+                    option.style.textTransform= "capitalize";
                     select.appendChild(option);
                   }
     
               },
             });
         });
+        // SEND FORM 
+    
                   </script>
 
 </body>

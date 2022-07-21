@@ -137,7 +137,6 @@ def getJobSubRole(request):
         for email in item['emails']:
             list_emails.append(email['address'])
         all_emails.append(list_emails)
-    print(list_job_title_sub_role)
 
     response_data={
         'list_job_title_sub_role':sorted(list(list_job_title_sub_role)),
@@ -155,6 +154,28 @@ def getCountry(request):
         list_countries.add(item['location_country'])
     response_data={
         'list_countries':sorted(list(list_countries), key=lambda x: (x is None, x))
+    } 
+    return JsonResponse(response_data)
+
+def getResults(request):
+    gender=request.GET.get('gender') if request.GET.get('gender') else ' '
+    job_role=request.GET.get('job_role') if request.GET.get('job_role') else ' '
+    job_sub_role=request.GET.get('job_sub_role') if request.GET.get('job_sub_role') else ' '
+    continent=request.GET.get('continent') if request.GET.get('continent') else ' '
+    country=request.GET.get('country') if request.GET.get('country') else ' '
+    language=request.GET.get('language') if request.GET.get('language') else ' '
+    all_emails=list()
+    r =requests.get('http://127.0.0.1:8000/search_emails/?gender='+str(gender)+'&job_title_role='+str(job_role).lower()+'&job_title_sub_role='+str(job_sub_role).lower()+'&location_continent='+str(continent)+'&location_country='+str(country)+'&languages='+str(language))
+    r_dictionary= r.json()
+    print(r_dictionary)
+    # for item in r_dictionary['results']:
+    #     list_countries.add(item['location_country'])
+    #     list_emails=list()
+    #     for email in item['emails']:
+    #         list_emails.append(email['address'])
+    #     all_emails.append(list_emails)
+    response_data={
+        # 'list_countries':sorted(list(list_countries), key=lambda x: (x is None, x))
     } 
     return JsonResponse(response_data)
 

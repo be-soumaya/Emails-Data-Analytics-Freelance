@@ -12,6 +12,7 @@ class DataDocumentSerializer(DocumentSerializer):
         fields = (
             'full_name',
             'gender',
+            'age',
             'job_title',
             'job_title_role',
             'job_title_sub_role',

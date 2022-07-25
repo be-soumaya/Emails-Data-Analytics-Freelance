@@ -1,27 +1,26 @@
-from django.http import JsonResponse
-from django.shortcuts import render,redirect
-from django_elasticsearch_dsl_drf.filter_backends import (
-    CompoundSearchFilterBackend,FilteringFilterBackend)
-from django_elasticsearch_dsl_drf.viewsets import DocumentViewSet
-from django.http.response import JsonResponse
-from numpy import append
-from rest_framework.parsers import JSONParser 
-from .models import *
-from .documents import *
-from .serializers import *
+import json
+import subprocess
+from datetime import date
 
 import pandas as pd
-from pymongo import MongoClient
-from pymongo.operations import InsertOne
-import json
+import requests
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
-import subprocess
-import requests
+from django.http import JsonResponse
+from django.http.response import JsonResponse
+from django.shortcuts import redirect, render
+from django_elasticsearch_dsl_drf.filter_backends import (
+    CompoundSearchFilterBackend, FilteringFilterBackend)
+from django_elasticsearch_dsl_drf.viewsets import DocumentViewSet
+from numpy import append
+from pymongo import MongoClient
+from pymongo.operations import InsertOne
 
-def preparingData(uploaded_file_url):
-    ds=pd.read_json("../LinkedinDjango"+uploaded_file_url)
-    subroles={    'art':['fine art','printing','arts and crafts','performing arts'],
+from .documents import *
+from .models import *
+from .serializers import *
+
+subroles={    'art':['fine art','printing','arts and crafts','performing arts'],
     'media':["media production", "motion pictures and film", "telecommunications", "photography", "newspapers", "internet", "entertainment", "writing and editing", "online media", "broadcast media", "animation", "publishing"],
 'design':["graphic design", "design"],
 'education':["higher education", "research", "education management", "primary/secondary education", "professional training & coaching", "libraries", "e-learning"],
@@ -43,6 +42,9 @@ def preparingData(uploaded_file_url):
 'services':["events services", "transportation/trucking/railroad", "insurance", "consumer services", "facilities services", "farming", "recreational facilities and services", "military", "package/freight delivery", "civic & social organization", "security and investigations", "religious institutions", "utilities", "translation and localization", "individual & family services", "semiconductors", "supermarkets", "fund-raising", "ranching", "shipbuilding"],
 'trades':["international trade and development"]
          }
+def preparingData(uploaded_file_url):
+    print('start preparing data')
+    ds=pd.read_json("../LinkedinDjango"+uploaded_file_url)
     selectedLanguage=[]
     for i in range(0,len(ds)):
         languages = ds['languages'][i]
@@ -105,17 +107,35 @@ def preparingData(uploaded_file_url):
                     
                         
     ds['job_title_role']=new_job_title_role
-    df=ds[['full_name','gender','job_title','job_title_role','job_title_sub_role','location_country','location_continent','emails','languages']]
-    df['job_title_role']=df['job_title_role'].str.replace(' ', '_')
-    myclient = MongoClient("mongodb+srv://soumaya:soumaya1Atlas@cluster0.y9xab.mongodb.net/test?retryWrites=true&w=majority")
+    
+    ages=[]
+    year=date.today().year
+    for i in range(0,len(ds)):
+        birth_year=ds['birth_year'][i]
+        if not birth_year:
+            ages.append(None)
+        else:
+            ages.append(year-birth_year)
+    
+    ds['age']=ages        
+        
+    df=ds[['full_name','gender','age','job_title','job_title_role','job_title_sub_role','location_country','location_continent','emails','languages']]
+    print('finish preparing data | start inserting data')
+
+    # myclient = MongoClient("mongodb+srv://soumaya:soumaya1Atlas@cluster0.y9xab.mongodb.net/test?retryWrites=true&w=majority")
+    myclient = MongoClient("mongodb://localhost:27017")
     db = myclient["LinkedinDB"]
     col = db["LinkedinApp_data"]
     col.drop_indexes()
     data = json.loads(df.to_json(orient='records'))
     col.bulk_write([ InsertOne(item) for item in data])
+    print('finish inserting data')
+
+
 
 
 def prepareFile(uploaded_file_url):
+    print('start preparing file')
     with open("../LinkedinDjango"+uploaded_file_url,'r', encoding="utf8") as contents:
         save = contents.read()
         save=",\n".join(save.splitlines())
@@ -124,6 +144,8 @@ def prepareFile(uploaded_file_url):
         contents.write(save)
     with open("../LinkedinDjango"+uploaded_file_url,'a', encoding="utf8") as contents:
         contents.write("]")
+    print('finish preparing file')
+
 
 def getJobSubRole(request):
     job_role=request.GET.get('job_role')
@@ -159,32 +181,35 @@ def getCountry(request):
 
 def getResults(request):
     gender=request.GET.get('gender') if request.GET.get('gender') else ' '
+    age=request.GET.get('age') if request.GET.get('age') else ' '
     job_role=request.GET.get('job_role') if request.GET.get('job_role') else ' '
     job_sub_role=request.GET.get('job_sub_role') if request.GET.get('job_sub_role') else ' '
     continent=request.GET.get('continent') if request.GET.get('continent') else ' '
     country=request.GET.get('country') if request.GET.get('country') else ' '
     language=request.GET.get('language') if request.GET.get('language') else ' '
     all_emails=list()
-    r =requests.get('http://127.0.0.1:8000/search_emails/?gender='+str(gender)+'&job_title_role='+str(job_role).lower()+'&job_title_sub_role='+str(job_sub_role).lower()+'&location_continent='+str(continent)+'&location_country='+str(country)+'&languages='+str(language))
+    r =requests.get('http://127.0.0.1:8000/search_emails/?gender='+str(gender)+'&job_title_role='+str(job_role).lower()+'&job_title_sub_role='+str(job_sub_role).lower()+'&location_continent='+str(continent)+'&location_country='+str(country)+'&languages='+str(language)+'&age__'+age)
     r_dictionary= r.json()
-    print(r_dictionary)
-    # for item in r_dictionary['results']:
-    #     list_countries.add(item['location_country'])
-    #     list_emails=list()
-    #     for email in item['emails']:
-    #         list_emails.append(email['address'])
-    #     all_emails.append(list_emails)
+    for item in r_dictionary['results']:
+        list_emails=list()
+        for email in item['emails']:
+            list_emails.append(email['address'])
+        all_emails.append(list_emails)
     response_data={
-        # 'list_countries':sorted(list(list_countries), key=lambda x: (x is None, x))
-    } 
+        'all_emails':all_emails,
+        'data':r_dictionary['results'],
+        'count':len(r_dictionary['results'])
+            } 
     return JsonResponse(response_data)
 
 
 def index(request):
     if request.method == 'POST' and request.FILES['datafile']:
+        print('start uploading file')
         myfile = request.FILES['datafile']
         fs = FileSystemStorage()
         filename = fs.save(myfile.name, myfile)
+        print('finish uploading file')
         uploaded_file_url = fs.url(filename)
         prepareFile(uploaded_file_url)
         preparingData(uploaded_file_url)
@@ -202,7 +227,8 @@ def index(request):
     r_dictionary= r.json()
     for item in r_dictionary['results']:
         list_job_title_role.add(item['job_title_role']) 
-        list_language.add(item['languages']) 
+        list_language.add(item['languages'])
+        
     context = {
         'data': data,
         'list_job_title_role': sorted(list_job_title_role, key=lambda x: (x is None, x)), 
@@ -257,6 +283,7 @@ class DataViewSet(DocumentViewSet):
     search_fields = (
             'full_name',
             'gender',
+            'age',
             'job_title',
             'job_title_role',
             'job_title_sub_role',
@@ -269,6 +296,7 @@ class DataViewSet(DocumentViewSet):
     filter_fields = {
         'full_name':'full_name',
         'gender': 'gender',
+        'age': 'age',
         'job_title': 'job_title',
         'job_title_role': 'job_title_role',
         'job_title_sub_role': 'job_title_sub_role',

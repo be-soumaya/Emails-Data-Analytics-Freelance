@@ -18,22 +18,36 @@ class DataDocument(Document):
 
     def prepare_emails(self, instance):
         return instance.emails
-    
-    # _id = fields.ObjectField()
 
-    # def prepare__id(self, instance):
-    #     return instance._id
+    job_title_sub_role = fields.TextField()
+
+    def prepare_job_title_sub_role(self, instance):
+        return str(instance.job_title_sub_role).replace(' ','_')
+
+
+    job_title_role = fields.TextField()
+
+    def prepare_job_title_role(self, instance):
+        return str(instance.job_title_role).replace(' ','_')
+        
+        
+    location_country = fields.TextField()
+
+    def prepare_location_country(self, instance):
+        return str(instance.location_country).replace(' ','_')
+
 
     class Django :
         model= Data
 
         fields = [
-            'full_name',
+            'full_name', 
             'gender',
+            'age',
             'job_title',
-            'job_title_role',
-            'job_title_sub_role',
-            'location_country',
+            # 'job_title_role',
+            # 'job_title_sub_role',
+            # 'location_country',
             'location_continent',
             'languages'
         ]

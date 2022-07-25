@@ -10,6 +10,7 @@ class Data(models.Model):
     id=models.ObjectIdField(primary_key=True)
     full_name = models.CharField(max_length=255)
     gender = models.CharField(max_length=255)
+    age = models.IntegerField()
     job_title = models.CharField(max_length=255)
     job_title_role = models.CharField(max_length=255)
     job_title_sub_role = models.CharField(max_length=255)

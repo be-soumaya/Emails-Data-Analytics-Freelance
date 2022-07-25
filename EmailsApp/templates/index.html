@@ -15,7 +15,7 @@
     <link
       href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Roboto:300,300i,400,400i,500,500i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i"
       rel="stylesheet">
-
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha512-KfkfwYDsLkIlwQp6LFnl8zNdLGxu9YAA1QvwINks4PhcElQSvqcyVLLD9aMhXd13uQjoXtEKNosOWaZqXgel0g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"
       integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" crossorigin="anonymous" />
     
@@ -58,6 +58,26 @@
                 <option selected> </option>
                 <option value="female">Female</option>
                 <option value="male">Male</option>
+              </select>
+            </div>
+          </div>
+          <div class="col">
+            <div class="input-group input-group-sm" >
+              <div class="input-group-prepend">
+                <label class="input-group-text" for="age">Age</label>
+              </div>
+              <select class="custom-select" id="age">
+                <option selected> </option>
+                <option value="lt=20">&lt20</option>
+                <option value="range=20__30">20-30</option>
+                <option value="range=31__40">31-40</option>
+                <option value="range=41__50">41-50</option>
+                <option value="range=51__60">51-60</option>
+                <option value="gt=60">&gt60</option>
+
+                {% for item in list_age %}
+                <option value="{{ item }}"  >{{ item }}</option>
+              {% endfor %}  
               </select>
             </div>
           </div>
@@ -126,8 +146,9 @@
             </div>            
           </div>
            <div class="col">
-            <button type="submit" class="btn btn-primary mb-2">Submit</button>
-          </div>
+            <a href=""><button class="au-btn au-btn-icon au-btn--blue au-btn--small">
+              <i class="fad fa-download"></i>Telecharger CSV</button> </a>   
+                      </div>
            
         </div>
       </form>
@@ -137,63 +158,31 @@
 
    
 
-    <div class="table-data__tool-right">
-      <a href=""><button class="au-btn au-btn-icon au-btn--blue au-btn--small">
-          <i class="fad fa-download"></i>Telecharger CSV</button> </a>   
+      <div class="table-data__tool-left">
+      <p id="count">Total : 0</p>    
     </div>
   </div>
 
   <div class="table-responsive table-responsive-data2">
-    <table class="table table-data2" id="DataTable">
+    <table class="table table-data2 table-sm" id="DataTable" style="table-layout:fixed;word-wrap:break-word;">
       <thead class="table-dark">
         <tr>
 
           <th style=" color:White">Full name</th>
-          <th style="color:White">Gender</th>
+          <th style="color:White;width:85px">Gender</th>
+          <th style="color:White;width:60px">Age</th>
           <th style="color:White">Job title</th>
           <th style="color:White">Job title role</th>
           <th style="color:White">Job title sub role</th>
-          <th style="color:White">Country</th>
           <th style="color:White">Continent</th>
-          <th style="color:White">Language</th>
-          <th style="color:White">Emails</th>
+          <th style="color:White">Country</th>
+          <th style="color:White;width:105px">Language</th>
+          <th style="color:White">Emails <button style="background-color:transparent; border: none; cursor:pointer;"  class="CopyColumn" data-target=".emails" >  <i class="fa-regular fa-copy" style="color:white"></i></button>  
+          </th>
         </tr>
       </thead>
       <tbody id='DataTabletBody'>
 
-{% comment %} 
-        {% for eq_list in eq %}
-
-        <tr
-          style="
-    {% if eq_list.type_equipement_id == 1 %}background-color:rgb(253, 230, 211){%endif%}{% if eq_list.type_equipement_id == 2 %}background-color:rgb(227, 250, 198){%endif%}{% if eq_list.type_equipement_id == 3 %}background-color:rgb(211, 253, 237){%endif%} "
-          class="tr-shadow">
-          <td>{{ forloop.counter}}</td>
-          <td>{{ eq_list.ref_equipement }}</td>
-          <td>{{ eq_list.serie_equipement }}</td>
-          <td>{{ eq_list.type_equipement }}</td>
-          <td>{{ eq_list.emplacement_equipement }}</td>
-          <td>{{ eq_list.designation_equipement }}</td>
-          <td>{{ eq_list.client_equipement }}</td>
-          <td>{{ eq_list.date_debut_fonctionnement_equipement }}</td>
-          <td>
-            <div class="table-data-feature">
-
-              <a href="{% url 'modifier' eq_list.id %}"> <button class="item mr-4" data-toggle="tooltip"
-                  data-placement="top" title="Edit">
-                  <i class="zmdi zmdi-edit"></i>
-                </button> </a>
-              <a href="{% url 'delete' eq_list.id %}"> <button class="item"
-                  onclick="return confirm('Confirmer la suppression');" data-toggle="tooltip" data-placement="top"
-                  title="Delete">
-                  <i class="zmdi zmdi-delete"></i>
-                </button> </a>
-
-            </div>
-          </td>
-
-        </tr>
-        {% endfor %} {% endcomment %}
       </tbody>
     </table>
   </div>
@@ -222,14 +211,12 @@
               select.appendChild(emptyOption)
               for(var i=0; i<response.list_job_title_sub_role.length;i++){
                 var option = document.createElement("option");
-                option.value = response.list_job_title_sub_role[i];////////////////////////////////value to match what on DB
+                option.value = response.list_job_title_sub_role[i];
                 option.innerHTML = response.list_job_title_sub_role[i].replace("_"," ");
                 option.style.textTransform= "capitalize";
                 select.appendChild(option);
               }
-              for(var i=0; i<response.data.length;i++){
-              $('#DataTable').append(`<tr><td>${response.data[i].full_name}</td><td>${response.data[i].gender}</td><td>${response.data[i].job_title}</td><td>${response.data[i].job_title_role}</td><td>${response.data[i].job_title_sub_role}</td><td>${response.data[i].location_country}</td><td>${response.data[i].location_continent}</td><td>${response.data[i].languages}</td><td>${response.all_emails[i].join('<br>')}</td></tr>`);
-              }
+             
              
           },
         });
@@ -247,6 +234,9 @@
               dataType:'json',
               success:function(response){
                   var select=document.getElementById("country");
+              var emptyOption = document.createElement("option");
+              emptyOption.innerHTML = " "
+              select.appendChild(emptyOption)
                   for(var i=0; i<response.list_countries.length;i++){
                     var option = document.createElement("option");
                     option.value = response.list_countries[i];
@@ -260,11 +250,15 @@
         });
         // SEND FORM 
         document.getElementById("wrapper").addEventListener("change",function(){
+
+          document.getElementById("DataTabletBody").innerHTML="";
+
           $.ajax({
             type:'GET',
             url:"getResults/",
             data:{
               gender:$("#gender").val(),
+              age:$("#age").val(),
               job_role:$("#job_role").val(),
               job_sub_role:$("#job_sub_role").val(),
               continent:$("#continent").val(),
@@ -273,12 +267,80 @@
             },
             dataType:'json',
             success:function(response){
-                console.log('passs')
+                console.log(response.count)
+                console.log(response.data)
+                document.getElementById("count").innerHTML="Total : "+response.count;
+
+             
+              for(var i=0; i<response.data.length;i++){
+              
+              $('#DataTable').append(`<tr><td >${response.data[i].full_name}</td><td >${response.data[i].gender}</td><td >${response.data[i].age}</td><td >${response.data[i].job_title}</td><td >${response.data[i].job_title_role}</td><td >${response.data[i].job_title_sub_role}</td><td >${response.data[i].location_continent}</td><td >${response.data[i].location_country}</td><td >${response.data[i].languages}</td><td class="emails">${response.all_emails[i].join(',<br>')}</td></tr>`);
+              }
+             
   
             },
           });
         })
+        $(document).ready(function() {
 
+          $(".CopyColumn").click(function(){
+  
+              var btn = $(this);
+  
+              // Disable the button whilst the clipboard copy is performed
+              btn.prop("disabled", true);
+  
+              var colData = "";
+  
+              // Use a line break to seperate the column data if no separator is specified
+              var colSeparator = (btn.data("separator")===undefined) ? "\n" : btn.data("separator");
+  
+              // Loop through all elements with the target class
+              $(btn.data("target")).each(function() {
+                  // Collect the column data and add the separator
+                  colData += $(this).text() + colSeparator;
+              });
+  
+              // Copy the column data to the clipboard
+              copyToClipboard(colData.trim());
+  
+              // Make a copy of the button text
+              var btn_txt = btn.html();
+  
+              // Change the button text to "Copied"
+              btn.html("Copied");
+  
+              // Revert the button text after 1.5 seconds
+              setTimeout(function(){
+                  btn.html(btn_txt);
+                  // Enable the button
+                  btn.prop("disabled", false);
+              },1500);
+  
+          });
+  
+      });
+  
+      function copyToClipboard(text) {
+          if (window.clipboardData && window.clipboardData.setData) {
+              // IE specific code path to prevent textarea being shown while dialog is visible.
+              return clipboardData.setData("Text", text); 
+          } else if (document.queryCommandSupported && document.queryCommandSupported("copy")) {
+              var textarea = document.createElement("textarea");
+              textarea.textContent = text;
+              textarea.style.position = "fixed";  // Prevent scrolling to bottom of page in MS Edge.
+              document.body.appendChild(textarea);
+              textarea.select();
+              try {
+                  return document.execCommand("copy");  // Security exception may be thrown by some browsers.
+              } catch (ex) {
+                  console.warn("Copy to clipboard failed.", ex);
+                  return false;
+              } finally {
+                  document.body.removeChild(textarea);
+              }
+          }
+      }
                   </script>
 
 </body>

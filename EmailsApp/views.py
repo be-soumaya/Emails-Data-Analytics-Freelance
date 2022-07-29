@@ -1,20 +1,23 @@
 import json
 import subprocess
 from datetime import date
+from django.urls import reverse
+from django.db.models import Q
 
 import pandas as pd
 import requests
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
-from django.http import JsonResponse
+from django.http import HttpResponseRedirect, JsonResponse
 from django.http.response import JsonResponse
 from django.shortcuts import redirect, render
 from django_elasticsearch_dsl_drf.filter_backends import (
     CompoundSearchFilterBackend, FilteringFilterBackend)
 from django_elasticsearch_dsl_drf.viewsets import DocumentViewSet
-from numpy import append
 from pymongo import MongoClient
 from pymongo.operations import InsertOne
+from zipfile import *
+import gzip
 
 from .documents import *
 from .models import *
@@ -44,7 +47,7 @@ subroles={    'art':['fine art','printing','arts and crafts','performing arts'],
          }
 def preparingData(uploaded_file_url):
     print('start preparing data')
-    ds=pd.read_json("../LinkedinDjango"+uploaded_file_url)
+    ds=pd.read_json(uploaded_file_url)
     selectedLanguage=[]
     for i in range(0,len(ds)):
         languages = ds['languages'][i]
@@ -136,69 +139,93 @@ def preparingData(uploaded_file_url):
 
 def prepareFile(uploaded_file_url):
     print('start preparing file')
-    with open("../LinkedinDjango"+uploaded_file_url,'r', encoding="utf8") as contents:
-        save = contents.read()
-        save=",\n".join(save.splitlines())
-    with open("../LinkedinDjango"+uploaded_file_url,'w', encoding="utf8") as contents:
-        contents.write("[")
-        contents.write(save)
-    with open("../LinkedinDjango"+uploaded_file_url,'a', encoding="utf8") as contents:
-        contents.write("]")
+    # with open("../LinkedinDjango"+uploaded_file_url,'r', encoding="utf8") as contents:
+    #     save = contents.read()
+
+    uploaded_file_url="["+",\n".join(uploaded_file_url.splitlines())+"]"
+    # with open("../LinkedinDjango"+uploaded_file_url,'w', encoding="utf8") as contents:
+    #     contents.write("[")
+    #     contents.write(save)
+    # with open("../LinkedinDjango"+uploaded_file_url,'a', encoding="utf8") as contents:
+    #     contents.write("]")
     print('finish preparing file')
+    return uploaded_file_url
 
 
 def getJobSubRole(request):
     job_role=request.GET.get('job_role')
-    list_job_title_sub_role=set()
-    all_emails=list()
-    r =requests.get('http://127.0.0.1:8000/search_emails/?job_title_role='+str(job_role).lower())
-    r_dictionary= r.json()
-    for item in r_dictionary['results']:
-        list_job_title_sub_role.add(item['job_title_sub_role'])
-        list_emails=list()
-        for email in item['emails']:
-            list_emails.append(email['address'])
-        all_emails.append(list_emails)
+    job_title_sub_role = Data.objects.filter(job_title_role__iexact=job_role).values_list('job_title_sub_role', flat=True).distinct()
+
+    # list_job_title_sub_role=set()
+    # r =requests.get('http://127.0.0.1:8000/search_emails/?job_title_role='+str(job_role).lower())
+    # r_dictionary= r.json()
+    # for item in r_dictionary['results']:
+    #     list_job_title_sub_role.add(item['job_title_sub_role'])
+        
 
     response_data={
-        'list_job_title_sub_role':sorted(list(list_job_title_sub_role)),
-        'all_emails':all_emails,
-        'data':r_dictionary['results']
+        'list_job_title_sub_role':sorted(list(job_title_sub_role)),
+        # 'data':r_dictionary['results']
     } 
     return JsonResponse(response_data)
 
 def getCountry(request):
     continent=request.GET.get('continent')
-    list_countries=set()
-    r =requests.get('http://127.0.0.1:8000/search_emails/?location_continent='+str(continent))
-    r_dictionary= r.json()
-    for item in r_dictionary['results']:
-        list_countries.add(item['location_country'])
+    countries = Data.objects.filter(location_continent__iexact=continent).values_list('location_country', flat=True).distinct()
+
+    # list_countries=set()
+    # r =requests.get('http://127.0.0.1:8000/search_emails/?location_continent='+str(continent))
+    # r_dictionary= r.json()
+    # for item in r_dictionary['results']:
+    #     list_countries.add(item['location_country'])
     response_data={
-        'list_countries':sorted(list(list_countries), key=lambda x: (x is None, x))
+        'list_countries':sorted(list(countries), key=lambda x: (x is None, x))
     } 
     return JsonResponse(response_data)
 
 def getResults(request):
-    gender=request.GET.get('gender') if request.GET.get('gender') else ' '
-    age=request.GET.get('age') if request.GET.get('age') else ' '
-    job_role=request.GET.get('job_role') if request.GET.get('job_role') else ' '
-    job_sub_role=request.GET.get('job_sub_role') if request.GET.get('job_sub_role') else ' '
-    continent=request.GET.get('continent') if request.GET.get('continent') else ' '
-    country=request.GET.get('country') if request.GET.get('country') else ' '
-    language=request.GET.get('language') if request.GET.get('language') else ' '
+    gender=request.GET.get('gender') 
+    age=int(request.GET.get('age')) if request.GET.get('age') !='' else request.GET.get('age') 
+    job_role=request.GET.get('job_role') 
+    job_sub_role=request.GET.get('job_sub_role')
+    continent=request.GET.get('continent') 
+    country=request.GET.get('country') 
+    language=request.GET.get('language') 
     all_emails=list()
-    r =requests.get('http://127.0.0.1:8000/search_emails/?gender='+str(gender)+'&job_title_role='+str(job_role).lower()+'&job_title_sub_role='+str(job_sub_role).lower()+'&location_continent='+str(continent)+'&location_country='+str(country)+'&languages='+str(language)+'&age__'+age)
-    r_dictionary= r.json()
-    for item in r_dictionary['results']:
+
+    genderquery = Q(gender=gender) if gender != '' else Q()
+    
+    if age == 10 :
+        agequery = Q(age__lt=20) 
+    elif age == 20 :
+        agequery = Q(age__range=(21,30)) 
+    elif age == 30 :
+        agequery = Q(age__range=(31,40)) 
+    elif age == 40 :
+        agequery = Q(age__range=(41,50)) 
+    elif age == 50 :
+        agequery = Q(age__range=(51,60)) 
+    elif age == 60 :
+        agequery = Q(age__gt=60) 
+    else:
+        agequery=Q()
+    job_rolequery = Q(job_title_role__iexact=job_role) if job_role != '' else Q()
+    job_sub_rolequery = Q(job_title_sub_role__iexact=job_sub_role) if job_sub_role != '' else Q()
+    continentquery = Q(location_continent__iexact=continent) if continent != '' else Q()
+    countryquery = Q(location_country=country) if country != '' else Q()
+    languagequery = Q(languages=language) if language != '' else Q()
+    results = Data.objects.filter(genderquery&job_rolequery&job_sub_rolequery&continentquery&countryquery&languagequery&agequery).values()
+    # r =requests.get('http://127.0.0.1:8000/search_emails/?format=json&gender='+str(gender)+'&job_title_role='+str(job_role).lower()+'&job_title_sub_role='+str(job_sub_role).lower()+'&location_continent='+str(continent)+'&location_country='+str(country)+'&languages='+str(language)+'&age__'+age)
+    # r_dictionary= r.json()
+    for item in results:
         list_emails=list()
         for email in item['emails']:
             list_emails.append(email['address'])
         all_emails.append(list_emails)
     response_data={
         'all_emails':all_emails,
-        'data':r_dictionary['results'],
-        'count':len(r_dictionary['results'])
+        'data':list(results),
+        'count':results.count()
             } 
     return JsonResponse(response_data)
 
@@ -206,33 +233,72 @@ def getResults(request):
 def index(request):
     if request.method == 'POST' and request.FILES['datafile']:
         print('start uploading file')
-        myfile = request.FILES['datafile']
-        fs = FileSystemStorage()
-        filename = fs.save(myfile.name, myfile)
-        print('finish uploading file')
-        uploaded_file_url = fs.url(filename)
-        prepareFile(uploaded_file_url)
-        preparingData(uploaded_file_url)
-        subprocess.run("python manage.py search_index --rebuild",shell=True, input='y'.encode())
+        myfiles = request.FILES.getlist('datafile')
+        for myfile in myfiles:
+            start_lines=0
+            end_lines=10000
+            with gzip.open(myfile, 'rb') as f:
+                readlines=f.readlines()
+                for i, l in enumerate(readlines):
+                    pass
+                nbr_lines=i+1
+                print(nbr_lines)
+                # myfile=f.read().decode("utf-8")
+                # json_string=prepareFile(myfile) 
+                # preparingData(json_string)
+                # Work with 50k lines per time
+                while (True):
+                    if end_lines>nbr_lines:
+                        part = readlines[end_lines-10000:nbr_lines]
+                        part = b''.join(part)
+                        myfile = part.decode("utf-8")
+                        json_string=prepareFile(myfile) 
+                        preparingData(json_string)
+                        break
+                    else:
+                        # part = [next(f) for x in range(lines)] 
+                        part = readlines[start_lines:end_lines]
+                        part = b''.join(part)
+                        myfile = part.decode("utf-8")
+                        json_string=prepareFile(myfile) 
+                        preparingData(json_string)
+                        start_lines=end_lines
+                        end_lines+=10000
+                    
+            # with ZipFile(myfile) as myzip:
+            #     names = myzip.namelist()
+            #     for name in names :
+            #         myfile=myzip.read(name).decode("utf-8")
+            # print('myfileee', myfile )
+        #     fs = FileSystemStorage()
+        #     filename = fs.save(myfile.name, myfile)
+        #     print('finish uploading file')
+        #     uploaded_file_url = fs.url(filename)
+        # subprocess.run("python manage.py search_index --rebuild",shell=True, input='y'.encode())
+        return HttpResponseRedirect(reverse("index"))
+
     
     data = Data.objects.all()
     job_title_role = Data.objects.all().values_list('job_title_role', flat=True).distinct()
-    list_job_title_role=set()
-    list_language=set()
+    language = Data.objects.all().values_list('languages', flat=True).distinct()
+    # print('MGDB',[str(i).replace(' ','_') for i in list(job_title_role)])
+    # list_job_title_role=set()
+    # list_language=set()
     # job_title_roles=DataDocument.search().source('job_title_role')
 
     # for hit in job_title_roles.scan(): 
     #     list_job_title_role.add(hit.job_title_role)
-    r =requests.get('http://127.0.0.1:8000/search_emails/')
-    r_dictionary= r.json()
-    for item in r_dictionary['results']:
-        list_job_title_role.add(item['job_title_role']) 
-        list_language.add(item['languages'])
+    # r =requests.get('http://127.0.0.1:8000/search_emails/?format=json')
+    # r_dictionary= r.json()
+    # for item in r_dictionary['results']:
+        # list_job_title_role.add(item['job_title_role']) 
+        # list_language.add(item['languages']) 
         
+    # print(list_job_title_role)
     context = {
         'data': data,
-        'list_job_title_role': sorted(list_job_title_role, key=lambda x: (x is None, x)), 
-        'list_language': sorted(list_language, key=lambda x: (x is None, x)),
+        'list_job_title_role': sorted(list(job_title_role), key=lambda x: (x is None, x)), 
+        'list_language': sorted(list(language), key=lambda x: (x is None, x)),
     }
  
     return render(request, 'index.html', context=context)

@@ -10,7 +10,7 @@
     <!-- CDNs -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
     <!-- Google Fonts -->
     <link
       href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Roboto:300,300i,400,400i,500,500i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i"
@@ -35,12 +35,11 @@
       <div class="row">
 
       <div class="input-group mb-3 w-25 ml-3 float-sm-left ">
-        <div class="custom-file">
-          <input type="file" class="custom-file-input" id="inputGroupFile02" name="datafile" >
-          <label class="custom-file-label" for="inputGroupFile02">Choose file</label>
-        </div>
-        <div class="input-group-append">
-          <button type="submit" class="input-group-text" >Import New Data</button>
+       
+          <input type="file" multiple class="form-control" id="inputGroupFile02" name="datafile" >
+          <button class="btn btn-outline-secondary" type="submit" class="input-group-text">Upload</button>
+
+     
         </div>
       </div>
       </div>
@@ -68,12 +67,18 @@
               </div>
               <select class="custom-select" id="age">
                 <option selected> </option>
-                <option value="lt=20">&lt20</option>
+                {% comment %} <option value="lt=20">&lt20</option>
                 <option value="range=20__30">20-30</option>
                 <option value="range=31__40">31-40</option>
                 <option value="range=41__50">41-50</option>
                 <option value="range=51__60">51-60</option>
-                <option value="gt=60">&gt60</option>
+                <option value="gt=60">&gt60</option> {% endcomment %}
+                <option value=10>&lt20</option>
+                <option value=20>20-30</option>
+                <option value=30>31-40</option>
+                <option value=40>41-50</option>
+                <option value=50>51-60</option>
+                <option value=60>&gt60</option>
 
                 {% for item in list_age %}
                 <option value="{{ item }}"  >{{ item }}</option>
@@ -116,8 +121,8 @@
                 <option value="asia">Asia</option>
                 <option value="europe">Europe</option>
                 <option value="oceania">Oceania</option>
-                <option value="north">North America</option>
-                <option value="south">South America</option>            
+                <option value="north america">North America</option>
+                <option value="south america">South America</option>            
               </select>
             </div>          
           </div>
@@ -145,10 +150,10 @@
               </select>
             </div>            
           </div>
-           <div class="col">
+           {% comment %} <div class="col">
             <a href=""><button class="au-btn au-btn-icon au-btn--blue au-btn--small">
               <i class="fad fa-download"></i>Telecharger CSV</button> </a>   
-                      </div>
+                      </div> {% endcomment %}
            
         </div>
       </form>
@@ -177,7 +182,7 @@
           <th style="color:White">Continent</th>
           <th style="color:White">Country</th>
           <th style="color:White;width:105px">Language</th>
-          <th style="color:White">Emails <button style="background-color:transparent; border: none; cursor:pointer;"  class="CopyColumn" data-target=".emails" >  <i class="fa-regular fa-copy" style="color:white"></i></button>  
+          <th style="color:White;">Emails<span id="countEmails"></span><button style="background-color:transparent; border: none; cursor:pointer;"  class="CopyColumn" data-target=".emails" >  <i class="fa-regular fa-copy" style="color:white"></i></button>  
           </th>
         </tr>
       </thead>
@@ -270,6 +275,13 @@
                 console.log(response.count)
                 console.log(response.data)
                 document.getElementById("count").innerHTML="Total : "+response.count;
+                var countEmails=0
+                for(var i=0; i<response.data.length;i++){
+                  if(response.all_emails[i] !=""){
+                    countEmails++;
+                  }
+                }
+                  document.getElementById("countEmails").innerHTML="("+countEmails+")";
 
              
               for(var i=0; i<response.data.length;i++){
@@ -286,34 +298,20 @@
           $(".CopyColumn").click(function(){
   
               var btn = $(this);
-  
-              // Disable the button whilst the clipboard copy is performed
               btn.prop("disabled", true);
-  
               var colData = "";
-  
-              // Use a line break to seperate the column data if no separator is specified
               var colSeparator = (btn.data("separator")===undefined) ? "\n" : btn.data("separator");
   
-              // Loop through all elements with the target class
               $(btn.data("target")).each(function() {
-                  // Collect the column data and add the separator
                   colData += $(this).text() + colSeparator;
               });
   
-              // Copy the column data to the clipboard
               copyToClipboard(colData.trim());
   
-              // Make a copy of the button text
               var btn_txt = btn.html();
-  
-              // Change the button text to "Copied"
               btn.html("Copied");
-  
-              // Revert the button text after 1.5 seconds
               setTimeout(function(){
                   btn.html(btn_txt);
-                  // Enable the button
                   btn.prop("disabled", false);
               },1500);
   
@@ -323,7 +321,6 @@
   
       function copyToClipboard(text) {
           if (window.clipboardData && window.clipboardData.setData) {
-              // IE specific code path to prevent textarea being shown while dialog is visible.
               return clipboardData.setData("Text", text); 
           } else if (document.queryCommandSupported && document.queryCommandSupported("copy")) {
               var textarea = document.createElement("textarea");
